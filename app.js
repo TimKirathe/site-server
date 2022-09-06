@@ -16,10 +16,10 @@ var app = express();
 const url = 'mongodb://localhost:27017/nucampsite';
 
 const connect = mongoose.connect(url, {
-  useFindAndModify: false,
-  useCreateIndex: true,
-  useNewUrlParser: true,
-  useUnifiedTopology: true
+    useFindAndModify: false,
+    useCreateIndex: true,
+    useNewUrlParser: true,
+    useUnifiedTopology: true
 });
 
 connect.then(() => 'Successfully connected to MongoDB server', err => console.log(err));
@@ -32,6 +32,34 @@ app.use(logger('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
+
+function auth(req, res, next) {
+    console.log(req.headers);
+    const authHeader = req.headers.authorization;
+    console.log(authHeader);
+    if(!authHeader) {
+        const error = new Error('You must first be authenticated!');
+        res.setHeader('WWW-Authenticate', 'Basic');
+        res.statusCode = 401;
+        return next(error);
+    }
+
+    const authDetails = Buffer.from(authHeader.split(' ')[1], 'base64').toString().split(':');
+    const username = authDetails[0];
+    const password = authDetails[1];
+    console.log(username);
+
+    if(username === 'admin' && password === 'password') {
+        return next();  // authorized
+    } else {
+        const error = new Error('You are not authenticated!');
+        res.statusCode = 401;
+        res.setHeader('WWW-Authenticate', 'Basic');
+        return next(error);
+    }
+}
+app.use(auth);
+
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.use('/', indexRouter);
@@ -42,18 +70,18 @@ app.use('/promotions', promotionRouter);
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
-  next(createError(404));
+    next(createError(404));
 });
 
 // error handler
 app.use(function(err, req, res, next) {
-  // set locals, only providing error in development
-  res.locals.message = err.message;
-  res.locals.error = req.app.get('env') === 'development' ? err : {};
+    // set locals, only providing error in development
+    res.locals.message = err.message;
+    res.locals.error = req.app.get('env') === 'development' ? err : {};
 
-  // render the error page
-  res.status(err.status || 500);
-  res.render('error');
+    // render the error page
+    res.status(err.status || 500);
+    res.render('error');
 });
 
 module.exports = app;
