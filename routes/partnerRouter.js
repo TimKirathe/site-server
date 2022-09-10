@@ -1,10 +1,10 @@
 const express = require('express');
 const Partner = require('../models/partner');
-const bodyParser = require('body-parser');
+const authenticate = require('../authenticate');
+
+// const bodyParser = require('body-parser');
 
 const partnerRoute = express.Router();
-
-partnerRoute.use(bodyParser.json());
 
 partnerRoute.route('/')
 .get((req, res, next) => {
@@ -20,7 +20,7 @@ partnerRoute.route('/')
         }
     })
     .catch(err => next(err));
-}).post((req, res) => {
+}).post(authenticate.verifyUser, authenticate.verifyAdmin, (req, res) => {
     Partner.create(req.body).then(partner => {
         if (partner) {
             res.statusCode = 200;
@@ -33,11 +33,11 @@ partnerRoute.route('/')
         }
     })
     .catch(err => next(err));
-}).put((req, res) => {
+}).put(authenticate.verifyUser, (req, res) => {
     res.statusCode = 403;
     res.end('PUT method not supported for /partners');
 })
-.delete((req, res) => {
+.delete(authenticate.verifyUser, authenticate.verifyAdmin, (req, res) => {
     Partner.deleteMany().then(response => {
         res.statusCode = 200;
         res.setHeader('Content-Type', 'application/json');
@@ -60,10 +60,10 @@ partnerRoute.route('/:partnerId')
         }
     })
     .catch(err => next(err));
-}).post((req, res) => {
+}).post(authenticate.verifyUser, (req, res) => {
     res.statusCode = 403;
     res.end(`POST method not supported for partner with ID: ${req.params.partnerId}`);
-}).put((req, res) => {
+}).put(authenticate.verifyUser, authenticate.verifyAdmin, (req, res) => {
     Partner.findByIdAndUpdate(req.params.partnerId, { $set: req.body }, { new: true }).then(partner => {
         if (partner) {
             res.statusCode = 200;
@@ -77,7 +77,7 @@ partnerRoute.route('/:partnerId')
     })
     .catch(err => next(err));
 })
-.delete((req, res) => {
+.delete(authenticate.verifyUser, authenticate.verifyAdmin, (req, res) => {
     Partner.findByIdAndDelete(req.params.campsiteId).then(response => {
 		res.statusCode = 200;
 		res.setHeader('Content-Type', 'application/json');
