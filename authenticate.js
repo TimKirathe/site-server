@@ -1,5 +1,6 @@
 const passport = require('passport');
 const LocalStrategy = require('passport-local').Strategy;
+const FacebookTokenStrategy = require('passport-facebook-token');
 const User = require('./models/user');
 const JwtStrategy = require('passport-jwt').Strategy;
 const ExtractJwt = require('passport-jwt').ExtractJwt;
@@ -22,7 +23,7 @@ exports.jwtPassport = passport.use(
     new JwtStrategy(
         opts,
         (jwt_payload, done) => {
-            User.findOne({ _id: jwt_payload._id}, (err, user) => {
+            User.findOne({ _id: jwt_payload._id }, (err, user) => {
                 if (err) {
                     return done(err, false);
                 } else if (user) {
@@ -46,3 +47,31 @@ exports.verifyAdmin = function(req, res, next) {
         return next(err);
     }
 }
+
+exports.facebookPassport = passport.use(
+    new FacebookTokenStrategy({
+        clientID: config.facebook.clientAppID,
+        clientSecret: config.facebook.clientAppSecret,
+    }, (accessToken, refreshToken, profile, done) => {
+        User.findOne({ facebookId: profile.id}, (err, user) => {
+            if (err) {
+                return done(err, false);
+            }
+            else if (!err && user) {
+                return done(null, user);
+            } else {
+                const user = new User({username: profile.displayName});
+                user.firstname = profile.firstName;
+                user.lastname = profile.familyName;
+                user.facebookId = profile.id;
+                user.save((err, user) => {
+                    if (err) {
+                        return done(err, false);
+                    } else {
+                        return done(null, user);
+                    }
+                });
+            }
+        });
+    })
+);

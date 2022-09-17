@@ -222,5 +222,3 @@ campsiteRouter.route('/:campsiteId/comments/:commentId')
 });
 
 module.exports = campsiteRouter;
-
-// 32452345234523452345
